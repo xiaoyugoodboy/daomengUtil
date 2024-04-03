@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>co.xiaoyuboy</groupId>
+    <artifactId>daomengUtil</artifactId>
+    <version>1.0-SNAPSHOT</version>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>5.8.16</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15on</artifactId>
+            <version>1.69</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.10.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
+            <version>1.2.47</version>
+        </dependency>
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+            <version>1.18.28</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+<!--            <plugin>-->
+<!--                <groupId>org.graalvm.nativeimage</groupId>-->
+<!--                <artifactId>native-image-maven-plugin</artifactId>-->
+<!--                <version>21.0.0.2</version>-->
+<!--                <executions>-->
+<!--                    <execution>-->
+<!--                        <goals>-->
+<!--                            <goal>native-image</goal>-->
+<!--                        </goals>-->
+<!--                        <phase>package</phase>-->
+<!--                    </execution>-->
+<!--                </executions>-->
+<!--                <configuration>-->
+<!--                    <skip>false</skip>-->
+<!--                    <imageName>demo-native-provider</imageName>-->
+<!--                    <mainClass>co.xiaoyuboy.App</mainClass>-->
+<!--                    <buildArgs>-->
+<!--                        &#45;&#45;no-fallback-->
+<!--                        &#45;&#45;initialize-at-build-time=org.bouncycastle-->
+<!--                        &#45;&#45;initialize-at-build-time=org.slf4j.MDC-->
+<!--                        &#45;&#45;initialize-at-build-time=org.slf4j.LoggerFactory-->
+<!--                        &#45;&#45;initialize-at-build-time=org.slf4j.impl.StaticLoggerBinder-->
+<!--                        &#45;&#45;initialize-at-build-time=org.apache.log4j.helpers.Loader-->
+<!--                        &#45;&#45;initialize-at-build-time=org.apache.log4j.Logger-->
+<!--                        &#45;&#45;initialize-at-build-time=org.apache.log4j.helpers.LogLog-->
+<!--                        &#45;&#45;initialize-at-build-time=org.apache.log4j.LogManager-->
+<!--                        &#45;&#45;initialize-at-build-time=org.apache.log4j.spi.LoggingEvent-->
+<!--                        &#45;&#45;initialize-at-build-time=org.slf4j.impl.Log4jLoggerFactory-->
+<!--                        &#45;&#45;initialize-at-build-time=org.slf4j.impl.Log4jLoggerAdapter-->
+<!--                        &#45;&#45;initialize-at-build-time=org.eclipse.collections.api.factory.Sets-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.epoll.Epoll-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.epoll.Native-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.epoll.EpollEventLoop-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.epoll.EpollEventArray-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.DefaultFileRegion-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.kqueue.KQueueEventArray-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.kqueue.KQueueEventLoop-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.kqueue.Native-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.unix.Errors-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.unix.IovArray-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.unix.Limits-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.util.internal.logging.Log4JLogger-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.unix.Socket-->
+<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.ChannelHandlerMask-->
+<!--                        &#45;&#45;report-unsupported-elements-at-runtime-->
+<!--                        &#45;&#45;allow-incomplete-classpath-->
+<!--                        &#45;&#45;enable-url-protocols=http-->
+<!--                        -H:+ReportExceptionStackTraces-->
+<!--                    </buildArgs>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
+
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.6</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <mainClass>co.xiaoyuboy.App</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.10</version>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <includeScope>runtime</includeScope>
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+            </plugin>
+
+
+
+
+        </plugins>
+
+
+    </build>
+</project>
