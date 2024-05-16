@@ -203,7 +203,8 @@ public class DaoMengSmile {
     private String getAse(String plaintext, String keyHex) {
 //        System.out.println("加密方法输入文本---->"+plaintext);
 //        System.out.println("加密方法输入key---->"+keyHex);
-        String ivHex = "39363138393133313230313132303130";
+//        String ivHex = "39363138393133313230313132303130";
+        String ivHex = "31363238303932313231333132323133";
         byte[] keyBytes = hexStringToByteArray(keyHex);
         byte[] ivBytes = hexStringToByteArray(ivHex);
         SecretKeySpec secretKeySpec = new SecretKeySpec(keyBytes, "AES");
