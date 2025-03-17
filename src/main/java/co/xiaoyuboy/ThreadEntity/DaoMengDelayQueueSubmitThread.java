@@ -28,12 +28,12 @@ public class DaoMengDelayQueueSubmitThread implements Runnable{
 
     @Override
     public void run() {
-      log.info("线程开始提交--->"+System.currentTimeMillis()+"----job信息"+job);
+//      log.info("线程开始提交--->"+System.currentTimeMillis()+"----job信息"+job);
         String json = HttpUtil.createPost("https://appdmkj.5idream.net/v2/signup/submit")
                 .contentType("application/x-www-form-urlencoded")
                 .header("standardUA", App.loginHead)
                 .body(this.job.getBody())
                 .execute().body();
-        log.info("线程提交结果--->"+json+"----job信息--->"+job.toString());
+        log.info("线程提交结果--->"+json);
     }
 }

@@ -171,6 +171,7 @@ public class DaoMengDelayQueueThread implements Runnable {
             throw new RuntimeException(e);
         }
         System.out.println("关闭循环");
+        System.exit(0);
     }
 
     public static void main(String[] args) {
@@ -212,7 +213,7 @@ public class DaoMengDelayQueueThread implements Runnable {
 //                    sendXinxi("任务完成","延迟队列为空,程序退出");
                     JsonParsing jsonParsing = new JsonParsing();
                     String activityDetailJson = DaoMengDetail.getActivityDetail(activityId, user);
-                    log.info("详细日志--->"+activityDetailJson);
+//                    log.info("详细日志--->"+activityDetailJson);
                     System.out.println("正在为您查询"+activityDetail.getName()+"活动的详细情况------->");
                     JSONObject json = new JSONObject(activityDetailJson);
                     String code = json.get("code").toString();
@@ -234,7 +235,7 @@ public class DaoMengDelayQueueThread implements Runnable {
 
 
                     }
-                    System.out.println("联系作者:2839706399(QQ)|by_Smlie(微信)\n\n");
+
                     //结束程序运行
                     System.exit(0);
                     break;
