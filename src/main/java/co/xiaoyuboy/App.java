@@ -115,7 +115,7 @@ public class App {
             Long activityDetailTime = jsonParsing.getActivityDetailTime(activityDetailJson);
             //读取出活动是否录取的joinId
             String joinId = jsonParsing.getActivityJoinId(activityDetailJson);
-            map.put(((++r) + ""), new ActivityDetail(activity.getActivityId(), activityDetailTime, activity.getName(), activity.getStatusText(), joinId));
+            map.put((activity.getActivityId() + ""), new ActivityDetail(activity.getActivityId(), activityDetailTime, activity.getName(), activity.getStatusText(), joinId));
         }
         //打印出可以报名的活动
         map.forEach((key, value) -> {
@@ -127,7 +127,7 @@ public class App {
             // 将Instant对象格式化为字符串
             String formattedDateTime = instant.atZone(zoneId).format(dateTimeFormatter);
 
-            System.out.println("\n" + key + "--->活动名字:" + value.getName() + "----活动状态:" + value.getStatusText() + "------活动开始报名时间:" + formattedDateTime + "\n");
+            System.out.println("\n活动ID-->" + key + "--->活动名字:" + value.getName() + "----活动状态:" + value.getStatusText() + "------活动开始报名时间:" + formattedDateTime + "\n");
         });
         System.out.println("=============================================================");
         System.out.print("输入对应的数字即可:");
@@ -139,7 +139,7 @@ public class App {
         }
         ActivityDetail activityDetail1 = map.get(readLine);
         String name = activityDetail1.getName();
-        System.out.println("你选择的活动序号是--->" + readLine + "------活动名字是---->" + name + "\n------请你输入yes(纯小写)--确认活动-----输入其他结束程序");
+        System.out.println("你选择的活动ID是--->" + readLine + "------活动名字是---->" + name + "\n------请你输入yes(纯小写)--确认活动-----输入其他结束程序");
         String readStr = new BufferedReader(new InputStreamReader(System.in)).readLine();
         if (!"yes".equals(readStr)) {
             return;
