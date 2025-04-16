@@ -1,7 +1,11 @@
 package co.xiaoyuboy;
 
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
 import cn.hutool.http.HttpUtil;
+import cn.hutool.json.JSONObject;
+import cn.hutool.json.JSONUtil;
 import co.xiaoyuboy.activity.DaoMengActivitySubmitManage;
 import co.xiaoyuboy.activity.DaoMengDetail;
 import co.xiaoyuboy.entity.Activity;
@@ -77,6 +81,8 @@ public class App {
         //解析出
         User user = jsonParsing.loginJsonParsing(json);
         log.info(account + "账号---->登录成功");
+        //验证激活码
+        verify();
         //利用解析算法获取出可以报名的活动
         List<Activity> activities = DaoMengActivityRecursionParsing.getActivityList(user);
         Map<String, ActivityDetail> map = new HashMap<>();
@@ -134,4 +140,31 @@ public class App {
 
 
     }
+    private static final String BASE_URL = "http://74.48.116.4:5666/api/key";
+
+    public static void verify() throws IOException {
+        int i = 0;
+        while (true){
+            System.out.println("\n请输入激活码:");
+            String generatedKey = new BufferedReader(new InputStreamReader(System.in)).readLine();
+            // 2. 请求验证 Key
+            String verifyUrl = BASE_URL + "/verify";
+            HttpResponse verifyResponse = HttpRequest.post(verifyUrl)
+                    .form("key", generatedKey) // 设置请求参数
+                    .execute();
+            JSONObject entries = JSONUtil.parseObj(verifyResponse.body());
+            String str = entries.getStr("code");
+            if (!str.equals("200")){
+                System.out.println("激活码错误，请获取正确激活码------>"+generatedKey);
+                if (i++>3){
+                    System.out.println("激活码多次输入错误，退出程序");
+                    System.exit(0);
+                }
+
+            }else if (str.equals("200")){
+                System.out.println("激活码正确，开始抢活动------>"+generatedKey);
+                break;
+            }
+        }
+}
 }
