@@ -45,21 +45,22 @@ public class App {
     static {
         Security.addProvider(new BouncyCastleProvider());
     }
+
     public static String account;
     public static String pwd;
 
     public static void main(String[] args) throws IOException {
-//        System.out.println(" .----------------.  .----------------.  .----------------.  .----------------.  .----------------. \n" +
-//                "| .--------------. || .--------------. || .--------------. || .--------------. || .--------------. |\n" +
-//                "| |    _______   | || | ____    ____ | || |     _____    | || |   _____      | || |  _________   | |\n" +
-//                "| |   /  ___  |  | || ||_   \\  /   _|| || |    |_   _|   | || |  |_   _|     | || | |_   ___  |  | |\n" +
-//                "| |  |  (__ \\_|  | || |  |   \\/   |  | || |      | |     | || |    | |       | || |   | |_  \\_|  | |\n" +
-//                "| |   '.___`-.   | || |  | |\\  /| |  | || |      | |     | || |    | |   _   | || |   |  _|  _   | |\n" +
-//                "| |  |`\\____) |  | || | _| |_\\/_| |_ | || |     _| |_    | || |   _| |__/ |  | || |  _| |___/ |  | |\n" +
-//                "| |  |_______.'  | || ||_____||_____|| || |    |_____|   | || |  |________|  | || | |_________|  | |\n" +
-//                "| |              | || |              | || |              | || |              | || |              | |\n" +
-//                "| '--------------' || '--------------' || '--------------' || '--------------' || '--------------' |\n" +
-//                " '----------------'  '----------------'  '----------------'  '----------------'  '----------------' ");
+        System.out.println(" .----------------.  .----------------.  .----------------.  .----------------.  .----------------. \n" +
+                "| .--------------. || .--------------. || .--------------. || .--------------. || .--------------. |\n" +
+                "| |    _______   | || | ____    ____ | || |     _____    | || |   _____      | || |  _________   | |\n" +
+                "| |   /  ___  |  | || ||_   \\  /   _|| || |    |_   _|   | || |  |_   _|     | || | |_   ___  |  | |\n" +
+                "| |  |  (__ \\_|  | || |  |   \\/   |  | || |      | |     | || |    | |       | || |   | |_  \\_|  | |\n" +
+                "| |   '.___`-.   | || |  | |\\  /| |  | || |      | |     | || |    | |   _   | || |   |  _|  _   | |\n" +
+                "| |  |`\\____) |  | || | _| |_\\/_| |_ | || |     _| |_    | || |   _| |__/ |  | || |  _| |___/ |  | |\n" +
+                "| |  |_______.'  | || ||_____||_____|| || |    |_____|   | || |  |________|  | || | |_________|  | |\n" +
+                "| |              | || |              | || |              | || |              | || |              | |\n" +
+                "| '--------------' || '--------------' || '--------------' || '--------------' || '--------------' |\n" +
+                " '----------------'  '----------------'  '----------------'  '----------------'  '----------------' ");
 //        //数据加密使用
         DaoMengSmile daoMengSmile = new DaoMengSmile();
         //数据解析使用
@@ -91,7 +92,7 @@ public class App {
         User user = jsonParsing.loginJsonParsing(json);
         log.info(account + "账号---->登录成功");
         //验证激活码
-        verify();
+        verify(account);
         //利用解析算法获取出可以报名的活动
         List<Activity> activities = DaoMengActivityRecursionParsing.getActivityList(user);
         Map<String, ActivityDetail> map = new HashMap<>();
@@ -145,7 +146,7 @@ public class App {
             return;
         }
         //测试
-      // Test(activityDetail1.getActivityId(), user,"http://127.0.0.1:5000/predict",10,100);
+        // Test(activityDetail1.getActivityId(), user,"http://127.0.0.1:5000/predict",10,100);
 
         //下面是抢活动的
         DaoMengActivitySubmitManage.SubmitDaoMengManage(activityDetail1, user);
@@ -153,137 +154,127 @@ public class App {
 
     }
 
-    private static final String BASE_URL = "http://74.48.116.4:5666/api/key";
-
-public static void verify() throws IOException {
-    int i = 0;
-    while (true){
-        System.out.println("\n请输入激活码:");
-        String generatedKey = new BufferedReader(new InputStreamReader(System.in)).readLine();
-        // 2. 请求验证 Key
-        String verifyUrl = BASE_URL + "/verify";
-        HttpResponse verifyResponse = HttpRequest.post(verifyUrl)
-                .form("key", generatedKey) // 设置请求参数
-                .execute();
-        JSONObject entries = JSONUtil.parseObj(verifyResponse.body());
-        String str = entries.getStr("code");
-        if (!str.equals("200")){
-            System.out.println("激活码错误，请获取正确激活码------>"+generatedKey);
-            if (i++>3){
-                System.out.println("激活码多次输入错误，退出程序");
-                System.exit(0);
-            }
-
-        }else if (str.equals("200")){
-            System.out.println("激活码正确，开始抢活动------>"+generatedKey);
-            break;
-        }
-    }
 
 
-}
+    private static final String BASE_URL = "http://38.207.176.57:5666/api/key";
 
-
-
-
-
-
-
-
-
-
-
-
-
-    public static void Test(String activityId, User user){
-        BodyUtil bodyUtil = new BodyUtil();
-        Job smsSignatureData = bodyUtil.getSMSSignatureData(activityId, user);
-        System.out.println(smsSignatureData);
-
-        byte[] imageBytes= fetchCaptchaImageHutool("https://appdmkj.5idream.net/signup/captcha",
-                co.xiaoyuboy.entity.App.loginHead,smsSignatureData.getBody() );
-
-
-        if (imageBytes != null) {
-            saveImage(imageBytes);
-        } else {
-            System.err.println("获取验证码图片失败!");
-        }
-        if (imageBytes != null) {
-            HttpResponse predictResponse = uploadImageHutool("http://127.0.0.1:5000/predict", imageBytes); // 上传图片并获取响应
-            if (predictResponse != null) {
-                System.out.println("预测接口响应状态码: " + predictResponse.getStatus());
-                System.out.println("预测接口响应体: " + predictResponse.body()); // 打印响应体
-            } else {
-                System.err.println("上传图片到预测接口失败!");
-            }
-        } else {
-            System.err.println("获取验证码图片失败!");
-        }
-
-
-    }
-    public static byte[] fetchCaptchaImageHutool(String url, String standardUA, String requestBody) {
-        try {
-            HttpResponse response = HttpRequest.post(url)
-                    .header("standardUA", standardUA)
-                    .header("Content-Type", "application/x-www-form-urlencoded") // Hutool 默认会自动设置 Content-Type 为 application/x-www-form-urlencoded，但显式声明更清晰
-                    .body(requestBody)
+    public static void verify(String account) throws IOException {
+        int i = 0;
+        while (true) {
+            System.out.println("\n请输入激活码:");
+            String generatedKey = new BufferedReader(new InputStreamReader(System.in)).readLine();
+            // 2. 请求验证 Key
+            String verifyUrl = BASE_URL + "/verify";
+            HttpResponse verifyResponse = HttpRequest.post(verifyUrl)
+                    .form("key", generatedKey) // 设置请求参数
+                    .form("account", account) // 设置请求参数
                     .execute();
+            JSONObject entries = JSONUtil.parseObj(verifyResponse.body());
+            String str = entries.getStr("code");
+            if (!str.equals("200")) {
+                System.out.println("激活码错误，请获取正确激活码------>" + generatedKey + "---[日志问题]--->" + entries.getStr("msg"));
+                if (i++ > 3) {
+                    System.out.println("激活码多次输入错误，退出程序");
+                    System.exit(0);
+                }
 
-            if (response.isOk()) { // 使用 isOk() 判断状态码是否为 2xx
-                return response.bodyBytes(); // 使用 bodyBytes() 直接获取字节数组
+            } else if (str.equals("200")) {
+                System.out.println("激活码正确，开始抢活动------>" + generatedKey);
+                break;
+            }
+        }
+    }
+
+
+        public static void Test (String activityId, User user){
+            BodyUtil bodyUtil = new BodyUtil();
+            Job smsSignatureData = bodyUtil.getSMSSignatureData(activityId, user);
+            System.out.println(smsSignatureData);
+
+            byte[] imageBytes = fetchCaptchaImageHutool("https://appdmkj.5idream.net/signup/captcha",
+                    co.xiaoyuboy.entity.App.loginHead, smsSignatureData.getBody());
+
+
+            if (imageBytes != null) {
+                saveImage(imageBytes);
             } else {
-                System.err.println("HTTP 请求失败，状态码: " + response.getStatus()); // 使用 getStatus() 获取状态码
+                System.err.println("获取验证码图片失败!");
+            }
+            if (imageBytes != null) {
+                HttpResponse predictResponse = uploadImageHutool("http://127.0.0.1:5000/predict", imageBytes); // 上传图片并获取响应
+                if (predictResponse != null) {
+                    System.out.println("预测接口响应状态码: " + predictResponse.getStatus());
+                    System.out.println("预测接口响应体: " + predictResponse.body()); // 打印响应体
+                } else {
+                    System.err.println("上传图片到预测接口失败!");
+                }
+            } else {
+                System.err.println("获取验证码图片失败!");
+            }
+
+
+        }
+        public static byte[] fetchCaptchaImageHutool (String url, String standardUA, String requestBody){
+            try {
+                HttpResponse response = HttpRequest.post(url)
+                        .header("standardUA", standardUA)
+                        .header("Content-Type", "application/x-www-form-urlencoded") // Hutool 默认会自动设置 Content-Type 为 application/x-www-form-urlencoded，但显式声明更清晰
+                        .body(requestBody)
+                        .execute();
+
+                if (response.isOk()) { // 使用 isOk() 判断状态码是否为 2xx
+                    return response.bodyBytes(); // 使用 bodyBytes() 直接获取字节数组
+                } else {
+                    System.err.println("HTTP 请求失败，状态码: " + response.getStatus()); // 使用 getStatus() 获取状态码
+                    return null;
+                }
+            } catch (Exception e) { // Hutool 的 HTTP 操作可能会抛出 Exception，需要捕获
+                e.printStackTrace();
                 return null;
             }
-        } catch (Exception e) { // Hutool 的 HTTP 操作可能会抛出 Exception，需要捕获
-            e.printStackTrace();
-            return null;
+        }
+        public static void saveImage ( byte[] imageBytes){
+            String folderPath = "C:\\tEST"; // 修改文件夹名称，以便区分不同的示例
+            String fileExtension = ".jpg"; // 假设保存为 JPEG 格式
+
+            File folder = new File(folderPath);
+            if (!folder.exists()) {
+                folder.mkdirs();
+            }
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss_SSS");
+            String timestamp = sdf.format(new Date());
+            String fileName = "captcha_" + timestamp + fileExtension;
+            File imageFile = new File(folder, fileName);
+
+            try (FileOutputStream fos = new FileOutputStream(imageFile)) {
+                fos.write(imageBytes);
+                System.out.println("图片已保存到: " + imageFile.getAbsolutePath());
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.err.println("保存图片失败: " + e.getMessage());
+            }
+        }
+        // 上传图片到预测接口 (使用 Hutool)
+        // 上传图片到预测接口 (使用 Hutool, 修改了 formMap 的值类型)
+        public static HttpResponse uploadImageHutool (String predictApiUrl,byte[] imageBytes){
+            try {
+                Map<String, Object> formMap = new HashMap<>();
+                // 使用 BytesResource 包装 byte[]
+                formMap.put("file", new BytesResource(imageBytes, "captcha.jpg")); //  BytesResource 构造函数可以传入 byte[] 和 文件名 (可选)
+
+                HttpRequest request = HttpRequest.post(predictApiUrl)
+                        .header("Accept", "*/*")
+                        .header("Accept-Encoding", "gzip, deflate, br")
+                        .header("User-Agent", "ApipostRuntime/1.1.0")
+                        .header("Connection", "keep-alive")
+                        .form(formMap); // 使用 form(Map) 方法设置 multipart/form-data 请求体
+
+                return request.execute();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
         }
     }
-    public static void saveImage(byte[] imageBytes) {
-        String folderPath = "C:\\tEST"; // 修改文件夹名称，以便区分不同的示例
-        String fileExtension = ".jpg"; // 假设保存为 JPEG 格式
-
-        File folder = new File(folderPath);
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
-
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmmss_SSS");
-        String timestamp = sdf.format(new Date());
-        String fileName = "captcha_" + timestamp + fileExtension;
-        File imageFile = new File(folder, fileName);
-
-        try (FileOutputStream fos = new FileOutputStream(imageFile)) {
-            fos.write(imageBytes);
-            System.out.println("图片已保存到: " + imageFile.getAbsolutePath());
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.err.println("保存图片失败: " + e.getMessage());
-        }
-    }
-    // 上传图片到预测接口 (使用 Hutool)
-    // 上传图片到预测接口 (使用 Hutool, 修改了 formMap 的值类型)
-    public static HttpResponse uploadImageHutool(String predictApiUrl, byte[] imageBytes) {
-        try {
-            Map<String, Object> formMap = new HashMap<>();
-            // 使用 BytesResource 包装 byte[]
-            formMap.put("file", new BytesResource(imageBytes, "captcha.jpg")); //  BytesResource 构造函数可以传入 byte[] 和 文件名 (可选)
-
-            HttpRequest request = HttpRequest.post(predictApiUrl)
-                    .header("Accept", "*/*")
-                    .header("Accept-Encoding", "gzip, deflate, br")
-                    .header("User-Agent", "ApipostRuntime/1.1.0")
-                    .header("Connection", "keep-alive")
-                    .form(formMap); // 使用 form(Map) 方法设置 multipart/form-data 请求体
-
-            return request.execute();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-}
