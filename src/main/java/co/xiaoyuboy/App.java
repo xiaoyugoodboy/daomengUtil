@@ -37,6 +37,7 @@ public class App {
     static {
         Security.addProvider(new BouncyCastleProvider());
     }
+
     public static String account;
     public static String pwd;
 
@@ -82,7 +83,7 @@ public class App {
         User user = jsonParsing.loginJsonParsing(json);
         log.info(account + "账号---->登录成功");
         //验证激活码
-       verify(account);
+        verify(account);
         //利用解析算法获取出可以报名的活动
         List<Activity> activities = DaoMengActivityRecursionParsing.getActivityList(user);
         Map<String, ActivityDetail> map = new HashMap<>();
@@ -140,11 +141,12 @@ public class App {
 
 
     }
+
     private static final String BASE_URL = "http://38.207.176.57:5666/api/key";
 
     public static void verify(String account) throws IOException {
         int i = 0;
-        while (true){
+        while (true) {
             System.out.println("\n请输入激活码:");
             String generatedKey = new BufferedReader(new InputStreamReader(System.in)).readLine();
             // 2. 请求验证 Key
@@ -155,17 +157,17 @@ public class App {
                     .execute();
             JSONObject entries = JSONUtil.parseObj(verifyResponse.body());
             String str = entries.getStr("code");
-            if (!str.equals("200")){
-                System.out.println("激活码错误，请获取正确激活码------>"+generatedKey+"---[日志问题]--->"+entries.getStr("msg"));
-                if (i++>3){
+            if (!str.equals("200")) {
+                System.out.println("激活码错误，请获取正确激活码------>" + generatedKey + "---[日志问题]--->" + entries.getStr("msg"));
+                if (i++ > 3) {
                     System.out.println("激活码多次输入错误，退出程序");
                     System.exit(0);
                 }
 
-            }else if (str.equals("200")){
-                System.out.println("激活码正确，开始抢活动------>"+generatedKey);
+            } else if (str.equals("200")) {
+                System.out.println("激活码正确，开始抢活动------>" + generatedKey);
                 break;
             }
         }
-}
+    }
 }
