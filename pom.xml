@@ -4,6 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <!-- 关键：引入 Spring Boot parent，统一管理 starter 版本 -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.5</version>
+        <relativePath/>
+    </parent>
+
     <groupId>co.xiaoyuboy</groupId>
     <artifactId>daomengUtil</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -11,91 +19,72 @@
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
+    <!-- 可选：显式声明 Maven Central，避免镜像抽风 -->
+    <repositories>
+        <repository>
+            <id>maven-central</id>
+            <url>https://repo1.maven.org/maven2/</url>
+        </repository>
+    </repositories>
+
     <dependencies>
+        <!-- 你原有的第三方依赖，保留各自版本 -->
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
             <version>5.8.16</version>
         </dependency>
+
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk15on</artifactId>
             <version>1.69</version>
         </dependency>
+
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>2.10.1</version>
         </dependency>
+
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
             <version>1.2.47</version>
         </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <optional>true</optional>
             <version>1.18.28</version>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- Boot 相关：不写版本，由 parent 统一管理 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
+        <!-- 其他依赖 -->
+        <dependency>
+            <groupId>com.microsoft.onnxruntime</groupId>
+            <artifactId>onnxruntime</artifactId>
+            <version>1.16.3</version>
         </dependency>
     </dependencies>
+
     <build>
         <plugins>
-<!--            <plugin>-->
-<!--                <groupId>org.graalvm.nativeimage</groupId>-->
-<!--                <artifactId>native-image-maven-plugin</artifactId>-->
-<!--                <version>21.0.0.2</version>-->
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <goals>-->
-<!--                            <goal>native-image</goal>-->
-<!--                        </goals>-->
-<!--                        <phase>package</phase>-->
-<!--                    </execution>-->
-<!--                </executions>-->
-<!--                <configuration>-->
-<!--                    <skip>false</skip>-->
-<!--                    <imageName>demo-native-provider</imageName>-->
-<!--                    <mainClass>co.xiaoyuboy.App</mainClass>-->
-<!--                    <buildArgs>-->
-<!--                        &#45;&#45;no-fallback-->
-<!--                        &#45;&#45;initialize-at-build-time=org.bouncycastle-->
-<!--                        &#45;&#45;initialize-at-build-time=org.slf4j.MDC-->
-<!--                        &#45;&#45;initialize-at-build-time=org.slf4j.LoggerFactory-->
-<!--                        &#45;&#45;initialize-at-build-time=org.slf4j.impl.StaticLoggerBinder-->
-<!--                        &#45;&#45;initialize-at-build-time=org.apache.log4j.helpers.Loader-->
-<!--                        &#45;&#45;initialize-at-build-time=org.apache.log4j.Logger-->
-<!--                        &#45;&#45;initialize-at-build-time=org.apache.log4j.helpers.LogLog-->
-<!--                        &#45;&#45;initialize-at-build-time=org.apache.log4j.LogManager-->
-<!--                        &#45;&#45;initialize-at-build-time=org.apache.log4j.spi.LoggingEvent-->
-<!--                        &#45;&#45;initialize-at-build-time=org.slf4j.impl.Log4jLoggerFactory-->
-<!--                        &#45;&#45;initialize-at-build-time=org.slf4j.impl.Log4jLoggerAdapter-->
-<!--                        &#45;&#45;initialize-at-build-time=org.eclipse.collections.api.factory.Sets-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.epoll.Epoll-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.epoll.Native-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.epoll.EpollEventLoop-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.epoll.EpollEventArray-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.DefaultFileRegion-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.kqueue.KQueueEventArray-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.kqueue.KQueueEventLoop-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.kqueue.Native-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.unix.Errors-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.unix.IovArray-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.unix.Limits-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.util.internal.logging.Log4JLogger-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.unix.Socket-->
-<!--                        &#45;&#45;initialize-at-run-time=io.netty.channel.ChannelHandlerMask-->
-<!--                        &#45;&#45;report-unsupported-elements-at-runtime-->
-<!--                        &#45;&#45;allow-incomplete-classpath-->
-<!--                        &#45;&#45;enable-url-protocols=http-->
-<!--                        -H:+ReportExceptionStackTraces-->
-<!--                    </buildArgs>-->
-<!--                </configuration>-->
-<!--            </plugin>-->
-
-
+            <!-- 维持你现有的打包逻辑 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -110,6 +99,7 @@
                     </archive>
                 </configuration>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -134,11 +124,12 @@
                 <artifactId>native-maven-plugin</artifactId>
             </plugin>
 
-
-
-
+            <!-- 如果以后想打可运行的 fat jar，可启用 Spring Boot 插件（可选）
+            <plugin>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            -->
         </plugins>
-
-
     </build>
 </project>
