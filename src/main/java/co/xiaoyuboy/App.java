@@ -8,14 +8,16 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import co.xiaoyuboy.activity.DaoMengActivitySubmitManage;
 import co.xiaoyuboy.activity.DaoMengDetail;
+import co.xiaoyuboy.captcha.LocalCaptchaService;
 import co.xiaoyuboy.config.NoCaptchaCustomConfig;
 import co.xiaoyuboy.config.RuntimeConfig;
 import co.xiaoyuboy.config.RuntimeConfig.ModeType;
+import co.xiaoyuboy.license.LicenseInfo;
+import co.xiaoyuboy.license.LicenseManager;
 import co.xiaoyuboy.entity.Activity;
 import co.xiaoyuboy.entity.ActivityDetail;
 import co.xiaoyuboy.entity.User;
 import co.xiaoyuboy.parsing.JsonParsing;
-import co.xiaoyuboy.util.BodyUtil;
 import co.xiaoyuboy.util.DaoMengActivityRecursionParsing;
 import co.xiaoyuboy.util.DaoMengSmile;
 import lombok.extern.java.Log;
@@ -67,11 +69,14 @@ public class App {
         JsonParsing jsonParsing = new JsonParsing();
         DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        LicenseManager licenseManager = new LicenseManager();
+        LicenseInfo licenseInfo = licenseManager.ensureLicense(reader);
         System.out.println("\n\n=======DaoMeng系统启动======");
         System.out.println("程序仅供逆向学习交流，请于24小时内删除");
         configureMode(reader);
         System.out.print("账号:");
         account = reader.readLine();
+        licenseManager.ensureAccountMatches(licenseInfo, account);
         System.out.print("密码:");
         pwd = reader.readLine();
         String data = daoMengSmile.getLoginData(account, pwd);
@@ -152,8 +157,7 @@ public class App {
                 configureNoCaptchaMode(reader);
                 break;
             } else if ("2".equals(choice)) {
-                //初始化验证码 服务
-                BodyUtil.getLocalCaptchaService();
+                LocalCaptchaService.ensureInitialized().warmUpSampleIfNeeded();
                 RuntimeConfig.setModeType(ModeType.CAPTCHA);
                 RuntimeConfig.updateQueueSettings(DEFAULT_CAPTCHA_SUBMIT_COUNT, DEFAULT_CAPTCHA_INTERVAL_MS, DEFAULT_CAPTCHA_LEAD_TIME_MS);
                 System.out.println("已启用验证码识别模式，系统将使用预设参数运行。");

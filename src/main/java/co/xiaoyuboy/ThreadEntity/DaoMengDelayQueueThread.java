@@ -2,6 +2,7 @@ package co.xiaoyuboy.ThreadEntity;
 
 import cn.hutool.json.JSONObject;
 import co.xiaoyuboy.activity.DaoMengDetail;
+import co.xiaoyuboy.captcha.LocalCaptchaService;
 import co.xiaoyuboy.config.RuntimeConfig;
 import co.xiaoyuboy.config.RuntimeConfig.QueueSettings;
 import co.xiaoyuboy.entity.ActivityDetail;
@@ -135,15 +136,18 @@ public class DaoMengDelayQueueThread implements Runnable {
     }
 
     private void runWithCaptcha(QueueSettings queueSettings) {
+        LocalCaptchaService.ensureInitialized().warmUpSampleIfNeeded();
         while (true) {
             long timeMillis = System.currentTimeMillis();
             Long activityCreateTime = activityDetail.getActivityCreateTime();
             if (timeMillis > activityCreateTime) {
+                LocalCaptchaService.ensureInitialized().triggerSampleWarmUp();
                 log.info("开始发送请求--->系统时间--->" + timeMillis + "---计算得到的活动开始时间---->" + activityCreateTime);
                 this.initDelayQueue(queueSettings.getSubmitCount(), queueSettings.getIntervalMs(), queueSettings.getLeadTimeMs());
                 daoMengSubmitWithRetry(activityDetail.getActivityId(), user);
                 break;
             } else if ((activityCreateTime - timeMillis) < (1000 * 10)) {
+                LocalCaptchaService.ensureInitialized().triggerSampleWarmUp();
                 log.info("距离活动开始还有10秒--->已经初始化队列" + System.currentTimeMillis());
                 this.initDelayQueue(queueSettings.getSubmitCount(), queueSettings.getIntervalMs(), queueSettings.getLeadTimeMs());
                 log.info("---->唤醒延迟队列等待提交中" + System.currentTimeMillis());

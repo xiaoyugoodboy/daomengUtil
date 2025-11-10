@@ -24,7 +24,6 @@ import java.util.Map;
 @Slf4j
 public class BodyUtil {
     private static final String CAPTCHA_URL = "https://appdmkj.5idream.net/signup/captcha";
-    public static volatile LocalCaptchaService localCaptchaService;
 
     public DaoMengSmile daoMengSmile = new DaoMengSmile();
 
@@ -95,12 +94,12 @@ public class BodyUtil {
                 continue;
             }
             try {
-//                long l = System.currentTimeMillis();
+                long l = System.currentTimeMillis();
                 JSONObject jsonObject = getLocalCaptchaService().recognizeWithJsonResponse(imageBytes);
                 if (jsonObject.getBool("success", false)) {
                     String resultValue = jsonObject.getStr("calculationResult");
                     code = Integer.valueOf(resultValue);
-//                    log.info("验证码识别成功，耗时：" + (System.currentTimeMillis() - l) + "ms");
+                    log.info("验证码识别成功，耗时：" + (System.currentTimeMillis() - l) + "ms");
                 }
             } catch (Exception ignored) {
             }
@@ -133,18 +132,8 @@ public class BodyUtil {
     }
 
     public static LocalCaptchaService getLocalCaptchaService() {
-        if (localCaptchaService == null) {
-            synchronized (BodyUtil.class) {
-                if (localCaptchaService == null) {
-                    LocalCaptchaService service = LocalCaptchaService.getInstance();
-                    if (service == null) {
-                        service = new LocalCaptchaService();
-                        service.init();
-                    }
-                    localCaptchaService = service;
-                }
-            }
-        }
-        return localCaptchaService;
+        LocalCaptchaService service = LocalCaptchaService.ensureInitialized();
+        service.warmUpSampleIfNeeded();
+        return service;
     }
 }

@@ -22,6 +22,7 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author smile_liuyu@qq.com @Smile
@@ -46,8 +47,9 @@ public class LocalCaptchaService {
     private final AtomicLong queueFullCount = new AtomicLong(0);
     private final AtomicLong totalWaitTime = new AtomicLong(0);
 
-    private static LocalCaptchaService instance;
+    private static volatile LocalCaptchaService instance;
     private OrtSession.SessionOptions sessionOptions;
+    private final AtomicBoolean sampleWarmed = new AtomicBoolean(false);
 
     @PostConstruct
     public void init() {
@@ -75,6 +77,21 @@ public class LocalCaptchaService {
 
     public static LocalCaptchaService getInstance() {
         return instance;
+    }
+
+    public static LocalCaptchaService ensureInitialized() {
+        LocalCaptchaService service = instance;
+        if (service == null) {
+            synchronized (LocalCaptchaService.class) {
+                service = instance;
+                if (service == null) {
+                    service = new LocalCaptchaService();
+                    service.init();
+                }
+                instance = service;
+            }
+        }
+        return service;
     }
 
     public boolean isAvailable() {
@@ -202,6 +219,38 @@ public class LocalCaptchaService {
         }
 
         return response;
+    }
+
+    public void warmUpSampleIfNeeded() {
+        if (sampleWarmed.get()) {
+            return;
+        }
+        if (runSampleWarmUp()) {
+            sampleWarmed.set(true);
+        }
+    }
+
+    public void triggerSampleWarmUp() {
+        runSampleWarmUp();
+    }
+
+    private boolean runSampleWarmUp() {
+        ClassPathResource resource = new ClassPathResource("captcha/1.jpg");
+        if (!resource.exists()) {
+            return false;
+        }
+        try (InputStream inputStream = resource.getInputStream()) {
+            byte[] bytes = inputStream.readAllBytes();
+            if (bytes.length == 0) {
+                return false;
+            }
+            recognizeWithJsonResponse(bytes);
+            log.info("验证码服务预热完成(样例图片)");
+            return true;
+        } catch (Exception e) {
+            log.warn("验证码服务预热失败", e);
+            return false;
+        }
     }
 
     /**
