@@ -15,6 +15,7 @@ import co.xiaoyuboy.entity.Activity;
 import co.xiaoyuboy.entity.ActivityDetail;
 import co.xiaoyuboy.entity.User;
 import co.xiaoyuboy.parsing.JsonParsing;
+import co.xiaoyuboy.util.BodyUtil;
 import co.xiaoyuboy.util.DaoMengActivityRecursionParsing;
 import co.xiaoyuboy.util.DaoMengSmile;
 import lombok.extern.java.Log;
@@ -151,6 +152,8 @@ public class App {
                 configureNoCaptchaMode(reader);
                 break;
             } else if ("2".equals(choice)) {
+                //初始化验证码 服务
+                BodyUtil.getLocalCaptchaService();
                 RuntimeConfig.setModeType(ModeType.CAPTCHA);
                 RuntimeConfig.updateQueueSettings(DEFAULT_CAPTCHA_SUBMIT_COUNT, DEFAULT_CAPTCHA_INTERVAL_MS, DEFAULT_CAPTCHA_LEAD_TIME_MS);
                 System.out.println("已启用验证码识别模式，系统将使用预设参数运行。");

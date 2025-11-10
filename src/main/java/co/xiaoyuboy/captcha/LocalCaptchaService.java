@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicLong;
  * @create 2025/11/10 15:19
  */
 @Slf4j
-@Service
 public class LocalCaptchaService {
 
     private OrtEnvironment environment;

@@ -12,6 +12,7 @@ import co.xiaoyuboy.entity.Job;
 import co.xiaoyuboy.entity.User;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,11 +21,13 @@ import java.util.Map;
 /**
  * 构建请求体.
  */
+@Slf4j
 public class BodyUtil {
     private static final String CAPTCHA_URL = "https://appdmkj.5idream.net/signup/captcha";
-    private static volatile LocalCaptchaService localCaptchaService;
+    public static volatile LocalCaptchaService localCaptchaService;
 
     public DaoMengSmile daoMengSmile = new DaoMengSmile();
+
 
     /**
      * 获取报名签名.
@@ -92,10 +95,12 @@ public class BodyUtil {
                 continue;
             }
             try {
+//                long l = System.currentTimeMillis();
                 JSONObject jsonObject = getLocalCaptchaService().recognizeWithJsonResponse(imageBytes);
                 if (jsonObject.getBool("success", false)) {
                     String resultValue = jsonObject.getStr("calculationResult");
                     code = Integer.valueOf(resultValue);
+//                    log.info("验证码识别成功，耗时：" + (System.currentTimeMillis() - l) + "ms");
                 }
             } catch (Exception ignored) {
             }
@@ -127,7 +132,7 @@ public class BodyUtil {
         return null;
     }
 
-    private LocalCaptchaService getLocalCaptchaService() {
+    public static LocalCaptchaService getLocalCaptchaService() {
         if (localCaptchaService == null) {
             synchronized (BodyUtil.class) {
                 if (localCaptchaService == null) {
