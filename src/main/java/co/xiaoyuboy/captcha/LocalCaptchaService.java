@@ -5,11 +5,8 @@ import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtSession;
 import cn.hutool.json.JSONObject;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
-import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -51,7 +48,6 @@ public class LocalCaptchaService {
     private OrtSession.SessionOptions sessionOptions;
     private final AtomicBoolean sampleWarmed = new AtomicBoolean(false);
 
-    @PostConstruct
     public void init() {
         try {
             instance = this;
@@ -607,7 +603,6 @@ public class LocalCaptchaService {
         }
     }
 
-    @PreDestroy
     public void cleanup() throws Exception {
         printStatistics();
 
