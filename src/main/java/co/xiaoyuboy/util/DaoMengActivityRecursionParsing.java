@@ -20,9 +20,38 @@ import co.xiaoyuboy.daomenjava.i;
  */
 public class DaoMengActivityRecursionParsing {
     private static DaoMengSmile smile=new DaoMengSmile();
-    public static List<Activity>  getActivityList(User user){
+
+    /**
+     * 获取可报名的活动列表（状态2、3、4：规划中、报名中、等待中）
+     */
+    public static List<Activity> getActivityList(User user){
         List<Activity> activityList=new ArrayList<>();
         for (int i=2;i<=4;i++){//获取规划中,报名中和等待中的所有活动
+            //页码
+           int index=1;
+            while (true){
+                List<Activity> activity = getActivity(user, smile.getSignature(getData(user.getUid(), user.getToken(), i + "",index+"")));
+                if (null==activity||activity.size()==0){//活动列表为空或者等于0,直接结束循环
+                    break;
+                }else {
+                   //这里合并活动的列表
+                    activityList.addAll(activity);
+                }
+                //页码
+                index++;
+
+            }
+        }
+        return activityList;
+    }
+
+    /**
+     * 获取全部活动列表（所有状态：1-8）
+     * 状态说明：1-未开始 2-规划中 3-报名中 4-等待中 5-进行中 6-已结束 7-已取消 8-已删除
+     */
+    public static List<Activity> getAllActivityList(User user){
+        List<Activity> activityList=new ArrayList<>();
+        for (int i=1;i<=8;i++){//获取所有状态的活动
             //页码
            int index=1;
             while (true){

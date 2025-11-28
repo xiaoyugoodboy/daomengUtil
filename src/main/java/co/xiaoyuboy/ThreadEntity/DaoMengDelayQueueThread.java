@@ -13,7 +13,6 @@ import co.xiaoyuboy.queue.DelayQueue;
 import co.xiaoyuboy.queue.Queue;
 import co.xiaoyuboy.util.BodyUtil;
 import co.xiaoyuboy.util.LogConfigurator;
-import lombok.extern.java.Log;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -23,78 +22,64 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
-import static co.xiaoyuboy.util.LogConfigurator.configure;
-
 /**
- * 延迟队列线程，支持无验证码和验证码识别模式。
+ * 延迟队列控制线程，负责在指定时间节点提交报名请求。
  */
-@Log
 public class DaoMengDelayQueueThread implements Runnable {
     private final ActivityDetail activityDetail;
     private final User user;
-    private final Queue<Job> queue = new DelayQueue();
-    private final ThreadPoolExecutor threadPool =
-            new ThreadPoolExecutor(16, 50, 100, TimeUnit.SECONDS, new LinkedBlockingQueue<>(10000));
+    private final Queue<Job> queue;
+    private final ThreadPoolExecutor threadPool;
     Logger log;
 
     public DaoMengDelayQueueThread(ActivityDetail activityDetail, User user) {
         this.activityDetail = activityDetail;
         this.user = user;
-        configure();
-        log = Logger.getLogger(LogConfigurator.class.getName());
+        this.queue = new DelayQueue<>();
+        this.threadPool = new ThreadPoolExecutor(16, 50, 100, TimeUnit.SECONDS, new LinkedBlockingQueue<>(10000));
+        LogConfigurator.configure();
+        this.log = Logger.getLogger(LogConfigurator.class.getName());
     }
 
-    private void initDelayQueue(long count, long time, long leadTime) {
-        boolean started = false;
-        Long activityCreateTime = activityDetail.getActivityCreateTime();
-        long now = System.currentTimeMillis();
-        if (now > activityCreateTime) {
-            started = true;
-        }
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss SSS");
+    private void initDelayQueue(long submitCount, long intervalMs, long leadTimeMs) {
+        boolean started = System.currentTimeMillis() > activityDetail.getActivityCreateTime();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss SSS");
         BodyUtil bodyUtil = new BodyUtil();
         String activityId = activityDetail.getActivityId();
-        for (int i = 1; i <= count; i++) {
+        for (int i = 1; i <= submitCount; i++) {
+            Job job;
             if (started) {
-                Long timestamp = i * time + System.currentTimeMillis();
-                Job job = bodyUtil.getSignatureData(activityId, this.user, timestamp);
-                job.setBegin(activityCreateTime);
-                job.setDelayTime(i * time);
-                queue.add(job);
+                long timestamp = System.currentTimeMillis() + i * intervalMs;
+                job = bodyUtil.getSignatureData(activityId, user, timestamp);
+                job.setBegin(activityDetail.getActivityCreateTime());
+                job.setDelayTime(i * intervalMs);
             } else {
-                Long timestamp = (i - 1) * time + activityCreateTime;
-                Job job = bodyUtil.getSignatureData(activityId, this.user, timestamp);
-                long beginTime = activityCreateTime;
-                job.setBegin(beginTime);
-                job.setDelayTime((i - 1) * time);
-                queue.add(job);
+                long timestamp = activityDetail.getActivityCreateTime() + (i - 1L) * intervalMs;
+                job = bodyUtil.getSignatureData(activityId, user, timestamp);
+                job.setBegin(activityDetail.getActivityCreateTime());
+                job.setDelayTime((i - 1L) * intervalMs);
             }
+            queue.add(job);
         }
-        Instant instant;
-        if (started) {
-            instant = Instant.ofEpochMilli(now);
-        } else {
-            getLeadTimeJob(activityCreateTime, leadTime);
-            instant = Instant.ofEpochMilli(activityCreateTime);
+        Instant target = started ? Instant.ofEpochMilli(System.currentTimeMillis())
+                : Instant.ofEpochMilli(activityDetail.getActivityCreateTime());
+        if (!started) {
+            getLeadTimeJob(activityDetail.getActivityCreateTime(), leadTimeMs);
         }
         ZoneId zoneId = ZoneId.of("Asia/Shanghai");
-        String formattedDateTime = instant.atZone(zoneId).format(dateTimeFormatter);
-        log.info("成功构建" + queue.size() + "个任务，第一个任务开始时间--->" + formattedDateTime);
+        String formattedDateTime = target.atZone(zoneId).format(formatter);
+        log.info("当前队列长度: " + queue.size() + " | 预计开始时间: " + formattedDateTime);
     }
 
-    /**
-     * 额外添加一个提前发送的任务。
-     */
-    public void getLeadTimeJob(long activityCreateTime, long leadTime) {
-        if (leadTime <= 0) {
+    public void getLeadTimeJob(long activityCreateTime, long leadTimeMs) {
+        if (leadTimeMs <= 0) {
             return;
         }
         BodyUtil bodyUtil = new BodyUtil();
         String activityId = activityDetail.getActivityId();
-        Long timestamp = activityCreateTime;
-        Job job = bodyUtil.getSignatureData(activityId, this.user, timestamp);
-        long beginTime = activityCreateTime - leadTime;
-        job.setBegin(beginTime);
+        Job job = bodyUtil.getSignatureData(activityId, user, activityCreateTime);
+        long begin = activityCreateTime - leadTimeMs;
+        job.setBegin(begin);
         job.setDelayTime(0L);
         queue.add(job);
     }
@@ -103,7 +88,7 @@ public class DaoMengDelayQueueThread implements Runnable {
     public void run() {
         QueueSettings queueSettings = RuntimeConfig.getQueueSettings();
         if (queueSettings.getSubmitCount() <= 0) {
-            throw new IllegalStateException("提交任务数量必须大于0，请重新配置参数后再启动程序。");
+            throw new IllegalStateException("提交任务数量不能小于等于0，请配置参数后再提交");
         }
         if (RuntimeConfig.isCaptchaEnabled()) {
             runWithCaptcha(queueSettings);
@@ -113,24 +98,24 @@ public class DaoMengDelayQueueThread implements Runnable {
     }
 
     private void runManual(QueueSettings queueSettings) {
-        this.initDelayQueue(queueSettings.getSubmitCount(), queueSettings.getIntervalMs(), queueSettings.getLeadTimeMs());
+        initDelayQueue(queueSettings.getSubmitCount(), queueSettings.getIntervalMs(), queueSettings.getLeadTimeMs());
         while (true) {
-            long timeMillis = System.currentTimeMillis();
-            Long activityCreateTime = activityDetail.getActivityCreateTime();
-            if (timeMillis > activityCreateTime) {
-                log.info("开始发送请求--->系统时间--->" + timeMillis + "---计算得到的活动开始时间---->" + activityCreateTime);
+            long now = System.currentTimeMillis();
+            long start = activityDetail.getActivityCreateTime();
+            if (now > start) {
+                log.info(now + "---->活动已开始，直接提交");
                 daoMengSubmitManual(activityDetail.getActivityId(), user);
                 break;
-            } else if ((activityCreateTime - timeMillis) < (1000 * 3)) {
-                log.info("距离活动开始还有三秒---->唤醒延迟队列等待" + System.currentTimeMillis());
+            } else if (start - now < 3000) {
+                log.info(System.currentTimeMillis() + "---->进入三秒倒计时直接提交");
                 daoMengSubmitManual(activityDetail.getActivityId(), user);
                 break;
-            } else if ((activityCreateTime - timeMillis) > (1000 * 20)) {
-                log.info("活动等待中......距离开始还有---->" + (activityCreateTime - timeMillis) / 1000 + "秒");
-                sleepSilently(1000 * 10);
+            } else if (start - now > 20000) {
+                log.info("活动等待中......距离开始还有->" + (start - now) / 1000 + "秒");
+                sleepSilently(10000);
             }
         }
-        sleepSilently(1000 * 10);
+        sleepSilently(10000);
         System.out.println("关闭循环");
         System.exit(0);
     }
@@ -138,27 +123,29 @@ public class DaoMengDelayQueueThread implements Runnable {
     private void runWithCaptcha(QueueSettings queueSettings) {
         LocalCaptchaService.ensureInitialized().warmUpSampleIfNeeded();
         while (true) {
-            long timeMillis = System.currentTimeMillis();
-            Long activityCreateTime = activityDetail.getActivityCreateTime();
-            if (timeMillis > activityCreateTime) {
+            long now = System.currentTimeMillis();
+            long start = activityDetail.getActivityCreateTime();
+            if (now > start) {
                 LocalCaptchaService.ensureInitialized().triggerSampleWarmUp();
-                log.info("开始发送请求--->系统时间--->" + timeMillis + "---计算得到的活动开始时间---->" + activityCreateTime);
-                this.initDelayQueue(queueSettings.getSubmitCount(), queueSettings.getIntervalMs(), queueSettings.getLeadTimeMs());
+                log.info(now + "---->活动已开始，直接提交");
+                initDelayQueue(queueSettings.getSubmitCount(), queueSettings.getIntervalMs(), queueSettings.getLeadTimeMs());
                 daoMengSubmitWithRetry(activityDetail.getActivityId(), user);
                 break;
-            } else if ((activityCreateTime - timeMillis) < (1000 * 10)) {
+            } else if (start - now < 10000) {
                 LocalCaptchaService.ensureInitialized().triggerSampleWarmUp();
-                log.info("距离活动开始还有10秒--->已经初始化队列" + System.currentTimeMillis());
-                this.initDelayQueue(queueSettings.getSubmitCount(), queueSettings.getIntervalMs(), queueSettings.getLeadTimeMs());
-                log.info("---->唤醒延迟队列等待提交中" + System.currentTimeMillis());
+                log.info(System.currentTimeMillis() + "---->进入验证码预热，倒计时10秒内直接提交");
+                initDelayQueue(queueSettings.getSubmitCount(), queueSettings.getIntervalMs(), queueSettings.getLeadTimeMs());
+                log.info(System.currentTimeMillis() + "---->开始提交验证码任务");
                 daoMengSubmitWithRetry(activityDetail.getActivityId(), user);
                 break;
-            } else if ((activityCreateTime - timeMillis) > (1000 * 20)) {
-                log.info("活动等待中......距离开始还有---->" + (activityCreateTime - timeMillis) / 1000 + "秒");
-                sleepSilently(1000 * 10);
+            } else if (start - now > 20000) {
+                log.info("活动等待中......距离开始还有->" + (start - now) / 1000 + "秒");
+                sleepSilently(10000);
+            } else {
+                // 时间窗口在10s~20s之间时，持续等待
             }
         }
-        sleepSilently(1000 * 10);
+        sleepSilently(10000);
         System.out.println("退出程序");
         System.exit(0);
     }
@@ -174,40 +161,41 @@ public class DaoMengDelayQueueThread implements Runnable {
 
     private void daoMengSubmitManual(String activityId, User user) {
         while (true) {
-            Job poll = queue.poll();
-            if (poll == null) {
-                if (queue.size() <= 0) {
-                    sleepSilently(3000);
-                    inspectResultAndExit(activityId, user);
-                    break;
-                }
-            } else {
-                threadPool.execute(new DaoMengDelayQueueSubmitThread(poll));
+            Job job = queue.poll();
+            if (job != null) {
+                threadPool.execute(new DaoMengDelayQueueSubmitThread(job));
+                continue;
             }
+            if (queue.size() > 0) {
+                continue;
+            }
+            sleepSilently(3000);
+            inspectResultAndExit(activityId, user);
+            return;
         }
     }
 
     private void daoMengSubmitWithRetry(String activityId, User user) {
-        int maximumNumber = 6;
-        boolean firstLoop = true;
-        long expireTime = System.currentTimeMillis();
+        int retry = 6;
+        boolean firstRound = true;
+        long waitUntil = System.currentTimeMillis();
         while (true) {
-            Job poll = queue.poll();
-            if (firstLoop) {
-                expireTime = System.currentTimeMillis() + 1000 * 15;
-                firstLoop = false;
+            Job job = queue.poll();
+            if (firstRound) {
+                waitUntil = System.currentTimeMillis() + 15000;
+                firstRound = false;
             }
-            if (poll == null && System.currentTimeMillis() > expireTime) {
-                if (queue.size() <= 0) {
+            if (job == null) {
+                if (System.currentTimeMillis() > waitUntil && queue.size() <= 0) {
                     sleepSilently(3000);
                     inspectResultAndExit(activityId, user);
-                    break;
+                    return;
                 }
-            } else if (poll != null) {
-                if ((maximumNumber--) < 0) {
-                    break;
+            } else {
+                if (retry-- < 0) {
+                    return;
                 }
-                threadPool.execute(new DaoMengDelayQueueSubmitThread(poll, activityId, user, queue));
+                threadPool.execute(new DaoMengDelayQueueSubmitThread(job, activityId, user, queue));
             }
         }
     }
@@ -215,11 +203,11 @@ public class DaoMengDelayQueueThread implements Runnable {
     private void inspectResultAndExit(String activityId, User user) {
         JsonParsing jsonParsing = new JsonParsing();
         String activityDetailJson = DaoMengDetail.getActivityDetail(activityId, user);
-        System.out.println("正在为您查询" + activityDetail.getName() + "活动的详细情况------->");
+        System.out.println("正在为您查询" + activityDetail.getName() + "活动的详细情况------>");
         JSONObject json = new JSONObject(activityDetailJson);
         String code = json.get("code").toString();
         if (!"100".equals(code)) {
-            System.out.println("活动详情获取失败---->正在退出程序(自行登录APP查看)");
+            System.out.println("活动详情获取失败---->正在退出程序(自行登录app查看)");
         } else {
             String joinId = jsonParsing.getActivityJoinId(activityDetailJson);
             if (!"0".equals(joinId)) {
@@ -231,9 +219,10 @@ public class DaoMengDelayQueueThread implements Runnable {
                     System.out.println(activityDetail.getName() + "---->未被录取或者处于待录取状态(影响因素很多)");
                 }
             } else {
-                System.out.println("活动Id获取不到---->正在退出程序(自行登录APP查看)");
+                System.out.println("活动Id获取不到---->正在退出程序(自行登录app查看)");
             }
         }
+        System.out.println("联系作者:2839706399(QQ)|by_Smlie(微信)\n\n");
         System.exit(0);
     }
 }

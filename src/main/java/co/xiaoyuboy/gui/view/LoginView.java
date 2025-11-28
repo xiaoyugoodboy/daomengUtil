@@ -1,15 +1,17 @@
 package co.xiaoyuboy.gui.view;
 
+import co.xiaoyuboy.gui.component.ModeSelectionDialog;
 import co.xiaoyuboy.gui.service.AuthService;
 import co.xiaoyuboy.gui.service.NetworkLicenseService;
 import co.xiaoyuboy.gui.util.AlertUtil;
+import co.xiaoyuboy.gui.util.GuiConfigManager;
 import co.xiaoyuboy.gui.util.LogManager;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.*;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,7 +24,6 @@ public class LoginView extends VBox {
     private final Stage primaryStage;
     private TextField accountField;
     private PasswordField passwordField;
-    private TextField activationCodeField;
     private Button loginButton;
     private ProgressIndicator progressIndicator;
     private Label statusLabel;
@@ -45,7 +46,6 @@ public class LoginView extends VBox {
         setSpacing(20);
         getStyleClass().add("login-container");
 
-        // Logo区域
         Label logoLabel = new Label("到梦空间");
         logoLabel.getStyleClass().add("logo-text");
 
@@ -55,25 +55,20 @@ public class LoginView extends VBox {
         VBox logoBox = new VBox(10, logoLabel, subtitleLabel);
         logoBox.setAlignment(Pos.CENTER);
 
-        // 表单区域
         VBox formBox = createFormBox();
 
-        // 状态显示
         statusLabel = new Label("");
         statusLabel.getStyleClass().add("status-label");
         statusLabel.setVisible(false);
 
-        // 加载指示器
         progressIndicator = new ProgressIndicator();
         progressIndicator.getStyleClass().add("progress-indicator");
         progressIndicator.setVisible(false);
         progressIndicator.setMaxSize(30, 30);
 
-        // 版本信息
         Label versionLabel = new Label("v2.0 GUI Edition");
         versionLabel.getStyleClass().add("version-label");
 
-        // 组装
         getChildren().addAll(
             logoBox,
             formBox,
@@ -89,7 +84,6 @@ public class LoginView extends VBox {
         formBox.setPadding(new Insets(20));
         formBox.getStyleClass().add("form-box");
 
-        // 账号输入
         Label accountLabel = new Label("手机号");
         accountLabel.getStyleClass().add("field-label");
         accountField = new TextField();
@@ -97,7 +91,6 @@ public class LoginView extends VBox {
         accountField.getStyleClass().add("modern-text-field");
         accountField.setPrefWidth(300);
 
-        // 密码输入
         Label passwordLabel = new Label("密码");
         passwordLabel.getStyleClass().add("field-label");
         passwordField = new PasswordField();
@@ -105,29 +98,17 @@ public class LoginView extends VBox {
         passwordField.getStyleClass().add("modern-text-field");
         passwordField.setPrefWidth(300);
 
-        // 激活码输入
-        Label activationLabel = new Label("激活码");
-        activationLabel.getStyleClass().add("field-label");
-        activationCodeField = new TextField();
-        activationCodeField.setPromptText("请输入激活码");
-        activationCodeField.getStyleClass().add("modern-text-field");
-        activationCodeField.setPrefWidth(300);
-
-        // 登录按钮
         loginButton = new Button("登录");
         loginButton.getStyleClass().add("primary-button");
         loginButton.setPrefWidth(300);
         loginButton.setPrefHeight(45);
         loginButton.setOnAction(e -> handleLogin());
 
-        // 回车登录
         passwordField.setOnAction(e -> handleLogin());
-        activationCodeField.setOnAction(e -> handleLogin());
 
         formBox.getChildren().addAll(
             accountLabel, accountField,
             passwordLabel, passwordField,
-            activationLabel, activationCodeField,
             loginButton
         );
 
@@ -137,51 +118,28 @@ public class LoginView extends VBox {
     private void handleLogin() {
         String account = accountField.getText().trim();
         String password = passwordField.getText().trim();
-        String activationCode = activationCodeField.getText().trim();
 
-        // 验证输入
-        if (account.isEmpty() || password.isEmpty() || activationCode.isEmpty()) {
+        if (account.isEmpty() || password.isEmpty()) {
             AlertUtil.showError("请填写完整信息");
             return;
         }
 
-        // 禁用按钮，显示加载
         loginButton.setDisable(true);
         progressIndicator.setVisible(true);
-        statusLabel.setText("正在验证...");
+        statusLabel.setText("正在登录...");
         statusLabel.setVisible(true);
 
-        LogManager.addLog("登录", "开始验证激活码和登录");
+        LogManager.addLog("登录", "开始登录");
 
-        // 异步验证和登录
         new Thread(() -> {
             try {
-                // 1. 验证激活码
-                statusLabel.setText("验证激活码中...");
-                boolean licenseValid = licenseService.verify(activationCode, account);
-
-                if (!licenseValid) {
-                    Platform.runLater(() -> {
-                        AlertUtil.showError("激活码验证失败，请联系管理员");
-                        resetLoginUI();
-                        LogManager.addLog("登录", "激活码验证失败");
-                    });
-                    return;
-                }
-
-                LogManager.addLog("登录", "激活码验证成功");
-
-                // 2. 用户登录
-                Platform.runLater(() -> statusLabel.setText("正在登录..."));
                 var loginResult = authService.login(account, password);
 
                 if (loginResult.isSuccess()) {
                     LogManager.addLog("登录", "登录成功: " + account);
-
                     Platform.runLater(() -> {
-                        statusLabel.setText("登录成功！");
-                        // 跳转到主界面
-                        openMainView(loginResult.getData());
+                        statusLabel.setText("登录成功，正在验证激活码...");
+                        promptLicenseAndContinue(loginResult.getData(), account);
                     });
                 } else {
                     Platform.runLater(() -> {
@@ -200,6 +158,64 @@ public class LoginView extends VBox {
                 });
             }
         }).start();
+    }
+
+    private void promptLicenseAndContinue(co.xiaoyuboy.entity.User user, String account) {
+        TextInputDialog dialog = new TextInputDialog();
+        dialog.setTitle("激活验证");
+        dialog.setHeaderText("请输入激活码");
+        dialog.setContentText("激活码：");
+
+        var resultOpt = dialog.showAndWait();
+        if (resultOpt.isEmpty() || resultOpt.get().trim().isEmpty()) {
+            AlertUtil.showWarning("激活码不能为空");
+            resetLoginUI();
+            return;
+        }
+
+        String code = resultOpt.get().trim();
+        progressIndicator.setVisible(true);
+        statusLabel.setText("正在验证激活码...");
+        LogManager.addLog("授权", "开始验证激活码");
+
+        new Thread(() -> {
+            boolean ok = licenseService.verify(code, account);
+            Platform.runLater(() -> {
+                if (ok) {
+                    LogManager.addLog("授权", "激活码验证成功");
+                    statusLabel.setText("激活成功，请选择提交模式...");
+                    openModeDialogThenMain(user);
+                } else {
+                    AlertUtil.showError("激活失败，请检查激活码");
+                    LogManager.addLog("授权", "激活码验证失败");
+                    resetLoginUI();
+                }
+            });
+        }).start();
+    }
+
+    private void openModeDialogThenMain(co.xiaoyuboy.entity.User user) {
+        ModeSelectionDialog modeDialog = new ModeSelectionDialog();
+        boolean configured = modeDialog.showAndWait(primaryStage);
+
+        if (configured && modeDialog.getSelectedMode() != null) {
+            switch (modeDialog.getSelectedMode()) {
+                case CAPTCHA:
+                    GuiConfigManager.setGlobalConfig(modeDialog.getSelectedMode(), 1, 2, 4);
+                    break;
+                case NO_CAPTCHA_DEFAULT:
+                    GuiConfigManager.setGlobalConfig(modeDialog.getSelectedMode(), 5, 2, 0);
+                    break;
+                case NO_CAPTCHA_CUSTOM:
+                    // 自定义模式已在对话框中配置
+                    break;
+            }
+
+            LogManager.addLog("配置", "全局模式: " + GuiConfigManager.getModeDescription());
+            openMainView(user);
+        } else {
+            resetLoginUI();
+        }
     }
 
     private void resetLoginUI() {

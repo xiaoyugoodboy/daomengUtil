@@ -36,7 +36,7 @@ public class AuthService {
             // 发送登录请求
             HttpResponse response = HttpRequest.post(LOGIN_URL)
                     .header("standardUA", standardUA)
-                    .body(data)
+                    .body(signature)
                     .timeout(10000)
                     .execute();
 

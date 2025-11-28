@@ -16,7 +16,7 @@ public class NetworkLicenseService {
     private static final int TIMEOUT = 10000;
 
     // 开发模式：设置为true可以跳过激活码验证（仅用于测试）
-    private static final boolean DEV_MODE = true;
+    private static final boolean DEV_MODE = false;
 
     /**
      * 验证激活码
@@ -26,6 +26,12 @@ public class NetworkLicenseService {
      * @return 是否验证成功
      */
     public boolean verify(String activationCode, String account) {
+        // 通用激活码（便捷测试）
+        if ("1028".equals(activationCode)) {
+            log.info("使用通用激活码，通过验证");
+            return true;
+        }
+
         // 开发模式：跳过验证
         if (DEV_MODE) {
             log.warn("⚠️ 开发模式已启用，跳过激活码验证");
